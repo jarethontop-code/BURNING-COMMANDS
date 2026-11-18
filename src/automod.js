@@ -6,7 +6,6 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ChannelType,
   EmbedBuilder,
   ModalBuilder,
   PermissionFlagsBits: P,
@@ -48,18 +47,21 @@ function makeEmbed(guildId) {
   ).join('\n');
   const words = config.bannedWords.length ? config.bannedWords.map(word => `\`${word}\``).join(', ') : 'Ninguna configurada';
   return new EmbedBuilder().setColor(0x5865F2).setTitle('Panel de AutoMod')
-    .setDescription(`${status}\n\n**Términos prohibidos:** ${words}\n\nPulsa un botón para activar o desactivar el filtro. Usa **Editar palabras** para añadir o quitar términos.`)
+    .setDescription(`${status}\n\n**Términos prohibidos:** ${words}\n\nCada filtro individual se activa o desactiva al pulsar su botón. **Activar todas** enciende todos los filtros; al volver a pulsarlo, se desactivan.`)
     .setFooter({ text: 'Los mensajes filtrados se eliminan automáticamente.' }).setTimestamp();
 }
 function panelComponents(guildId) {
   const config = settings(guildId);
-  const buttons = Object.entries(FILTERS).map(([key, filter]) => new ButtonBuilder()
+  const filterButtons = Object.entries(FILTERS).map(([key, filter]) => new ButtonBuilder()
     .setCustomId(`automod:toggle:${guildId}:${key}`)
     .setLabel(filter.label)
     .setStyle(config.filters[key] ? ButtonStyle.Success : ButtonStyle.Secondary));
-  buttons.push(new ButtonBuilder().setCustomId(`automod:words:${guildId}`).setLabel('Editar palabras').setEmoji('📝').setStyle(ButtonStyle.Primary));
-  // Discord limits action rows to five components.
-  return [new ActionRowBuilder().addComponents(...buttons)];
+  const allEnabled = Object.keys(FILTERS).every(key => config.filters[key]);
+  const actionButtons = [
+    new ButtonBuilder().setCustomId(`automod:words:${guildId}`).setLabel('Editar palabras').setEmoji('📝').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`automod:toggle-all:${guildId}`).setLabel(allEnabled ? 'Desactivar todas' : 'Activar todas').setEmoji(allEnabled ? '🔴' : '🟢').setStyle(allEnabled ? ButtonStyle.Danger : ButtonStyle.Success)
+  ];
+  return [new ActionRowBuilder().addComponents(...filterButtons), new ActionRowBuilder().addComponents(...actionButtons)];
 }
 const command = {
   name: 'automod',
@@ -116,6 +118,15 @@ async function handleInteraction(interaction) {
     return true;
   }
 
+  if (interaction.isButton() && parts[1] === 'toggle-all') {
+    const config = settings(guildId);
+    const enableAll = !Object.keys(FILTERS).every(key => config.filters[key]);
+    for (const key of Object.keys(FILTERS)) config.filters[key] = enableAll;
+    save();
+    await interaction.update({ embeds: [makeEmbed(guildId)], components: panelComponents(guildId) });
+    return true;
+  }
+
   if (interaction.isButton() && parts[1] === 'words') {
     const modal = new ModalBuilder().setCustomId(`automod:words-modal:${guildId}`).setTitle('Editar palabras prohibidas');
     const input = new TextInputBuilder().setCustomId('terms').setLabel('Palabras separadas por comas')
@@ -140,7 +151,6 @@ async function handleInteraction(interaction) {
     }
     config.bannedWords = config.bannedWords.slice(0, 100);
     save();
-    // Modal submits are new interactions. Reply instead of updating the old component interaction.
     await answer(interaction, { embeds: [makeEmbed(guildId)] });
     return true;
   }

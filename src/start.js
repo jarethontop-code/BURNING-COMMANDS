@@ -7,5 +7,6 @@ require('./slash-security').install();
 require('./automod').install();
 require('./prefix-utility').install();
 require('./interaction-fixes').install();
+require('./welcome-member').install();
 process.env.ENABLE_PRIVILEGED_INTENTS = 'true';
 require('./index');
