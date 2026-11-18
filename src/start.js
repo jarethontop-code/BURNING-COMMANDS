@@ -1,8 +1,6 @@
-// Install prefix handlers before the existing bot registers its message listeners.
+// Install social, prefix, and slash-only security features before the main entry point registers listeners.
 require('./social-interactions').install();
 require('./prefix-commands').install();
-
-// The current entry point requests privileged intents for prefix commands.
-// Enable Message Content Intent and Server Members Intent in Discord Developer Portal.
+require('./slash-security').install();
 process.env.ENABLE_PRIVILEGED_INTENTS = 'true';
 require('./index');

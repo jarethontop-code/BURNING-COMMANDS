@@ -1,23 +1,19 @@
 # BURNING-COMMANDS
 
-Bot de Discord con comandos híbridos y reacciones sociales. Arranca mediante `npm start` (Node.js 20+).
+Bot de Discord con comandos de prefijo y módulos separados de Slash Commands. Las funciones de bienvenida, anti-raid y verificación son **exclusivas de `/`**; no tienen alias con punto.
 
-## Comandos con prefijo `.`
+## Slash Commands
 
-- `.purge 13` — elimina hasta 100 mensajes recientes.
-- `.lock` / `.unlock` — bloquea o desbloquea el canal actual.
-- `.timeout @usuario 13m` o responde al mensaje de un usuario con `.timeout 13m`; `.mute` es alias.
-- `.ban @usuario [razón]` y `.kick @usuario [razón]`; también puedes responder al mensaje del usuario y escribir `.ban [razón]` o `.kick [razón]`.
-- `.serverinfo` — estadísticas del servidor.
-- `.userinfo [@usuario]` — consulta tu perfil, menciona a un miembro o responde a su mensaje.
-- `.nuke true` — recrea inmediatamente el canal. Esta acción borra el historial del canal original y es irreversible; solo ejecuta el comando si realmente deseas borrarlo.
-- `.help` — lista de comandos principales.
+- `/setwelcome canal mensaje [archivo]`: configura bienvenida; variables de texto `{user}` y `{server}`. Acepta imágenes o videos MP4/MOV de hasta 10 segundos. Para video se usa `ffprobe` para validar la duración y `ffmpeg` para convertirlo a GIF en bucle. Instala ambas herramientas del sistema y monta almacenamiento persistente para `welcome-media/` si el despliegue usa disco efímero. Límite del archivo: 25 MB.
+- `/testwelcome`: publica la vista previa en el canal configurado.
+- `/anti-raid`: abre un panel privado con botones activar/restaurar y selector de umbral (3/5/7/10 entradas por 10 segundos). Al dispararse bloquea canales de texto y expulsa cuentas recién creadas hace menos de 7 días si el bot tiene permisos. El botón verde restaura los permisos previos que se pudieron guardar y desactiva el escudo.
+- `/verify canal rol`: publica un botón que asigna el rol seleccionado, siempre respetando la jerarquía de roles del bot.
 
-Las reacciones `.kiss`, `.hug`, `.slap`, `.pat`, `.bite`, `.poke`, `.cuddle`, `.highfive`, `.punch`, `.tickle`, `.cry`, `.dance`, `.blush`, `.sleep` y `.happy` están incluidas en `src/social-interactions.js`.
+Los comandos existentes con `.` permanecen separados. No se crean aliases híbridos para las cuatro funciones anteriores.
 
-## Configuración de Discord
+## Requisitos y permisos
 
-Define `DISCORD_TOKEN` en el entorno de ejecución. Activa **Message Content Intent** y **Server Members Intent** en Developer Portal; son necesarios para comandos de prefijo y consultar miembros. Dale al bot permisos mínimos: gestionar mensajes, canales, miembros, moderar miembros y ver mensajes. El bot debe tener un rol superior al de los usuarios que modera.
+Node.js 20+, token `DISCORD_TOKEN`, activar **Message Content Intent** y **Server Members Intent** en Developer Portal para conservar los comandos de prefijo y la detección de miembros. Concede al bot solo los permisos necesarios, entre ellos gestionar canales/roles/miembros y leer el registro de auditoría para la respuesta anti-raid. El rol del bot debe superar al rol de verificación.
 
 ```bash
 npm install
