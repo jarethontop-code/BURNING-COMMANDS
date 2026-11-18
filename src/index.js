@@ -1,7 +1,9 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Events, Partials } = require('discord.js');
 const hybrid = require('./hybrid');
+const { addOptionCommands } = require('./command-options');
 const antibot = require('./antibot');
+addOptionCommands(hybrid);
 require('./presentation').install(hybrid);
 
 if (!process.env.DISCORD_TOKEN) {
@@ -16,11 +18,8 @@ const client = new Client({
 
 client.once(Events.ClientReady, async ready => {
   console.log(`Conectado como ${ready.user.tag}.`);
-  try {
-    await hybrid.registerCommands(ready);
-  } catch (error) {
-    console.error('No se pudieron registrar los slash commands:', error);
-  }
+  try { await hybrid.registerCommands(ready); }
+  catch (error) { console.error('No se pudieron registrar los slash commands:', error); }
 });
 client.on(Events.MessageCreate, message => hybrid.onMessage(client, message));
 client.on(Events.InteractionCreate, async interaction => {
@@ -30,7 +29,7 @@ client.on(Events.InteractionCreate, async interaction => {
   } catch (error) {
     console.error('Error procesando interacción:', error);
     if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
-      await interaction.reply({ embeds: [{ color: 0xE74C3C, title: 'No se pudo completar', description: 'Ocurrió un error inesperado. Inténtalo de nuevo más tarde.' }], ephemeral: true }).catch(() => {});
+      await interaction.reply({ embeds: [new (require('discord.js').EmbedBuilder)().setColor(0xE74C3C).setTitle('No se pudo completar').setDescription('Ocurrió un error interno. Inténtalo de nuevo más tarde.')], ephemeral: true }).catch(() => {});
     }
   }
 });

@@ -1,22 +1,21 @@
 const { EmbedBuilder } = require('discord.js');
 
-// Normaliza las respuestas de texto de los comandos para que el proyecto mantenga
-// una presentación consistente. Las excepciones también las convierte el router
-// híbrido en embeds, y los slash replies se mantienen efímeros por defecto.
 function install(hybrid) {
   for (const spec of hybrid.specs) {
     const originalRun = spec.run;
     spec.run = async context => {
       const originalReply = context.reply;
       context.reply = payload => {
-        if (typeof payload === 'string') {
-          return originalReply({ embeds: [new EmbedBuilder().setColor(0x5865F2).setDescription(payload)] });
+        // Avoid secondary TypeErrors when a handler accidentally replies without a payload.
+        const safePayload = payload ?? { content: 'Comando completado.' };
+        if (typeof safePayload === 'string') {
+          return originalReply({ embeds: [new EmbedBuilder().setColor(0x5865F2).setDescription(safePayload)] });
         }
-        if (payload && typeof payload === 'object' && payload.content && !payload.embeds?.length) {
-          const { content, ...rest } = payload;
+        if (safePayload && typeof safePayload === 'object' && safePayload.content && !safePayload.embeds?.length) {
+          const { content, ...rest } = safePayload;
           return originalReply({ ...rest, embeds: [new EmbedBuilder().setColor(0x5865F2).setDescription(String(content).slice(0, 4000))] });
         }
-        return originalReply(payload);
+        return originalReply(safePayload);
       };
       return originalRun(context);
     };
