@@ -1,12 +1,12 @@
 {
   "name": "burning-commands-discord-bot",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "main": "src/index.js",
   "scripts": {
     "start": "node src/start.js",
     "dev": "node --watch src/start.js",
-    "check": "node --check src/start.js && node --check src/slash-security.js && node --check src/prefix-commands.js && node --check src/social-interactions.js && node --check src/index.js"
+    "check": "node --check src/start.js && node --check src/automod.js && node --check src/prefix-utility.js && node --check src/slash-security.js && node --check src/prefix-commands.js && node --check src/social-interactions.js && node --check src/index.js"
   },
   "engines": { "node": ">=20.0.0" },
   "dependencies": { "discord.js": "^14.19.3", "dotenv": "^16.4.7" }

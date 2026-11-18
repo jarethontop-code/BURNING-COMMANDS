@@ -2,4 +2,7 @@ node_modules/
 .env
 data.json
 data.json.tmp
+automod.json
+automod.json.tmp
+welcome-media/
 *.log

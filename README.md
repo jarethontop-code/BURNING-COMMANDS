@@ -1,21 +1,18 @@
 # BURNING-COMMANDS
 
-Bot de Discord con comandos de prefijo y módulos separados de Slash Commands. Las funciones de bienvenida, anti-raid y verificación son **exclusivas de `/`**; no tienen alias con punto.
+Bot de Discord con comandos de moderación, comunidad y seguridad en módulos separados. AutoMod es exclusivo de Slash Commands; los comandos de utilidad indicados aquí solo se usan con `.` y no se registran como slash.
 
-## Slash Commands
+## AutoMod: solo `/automod`
 
-- `/setwelcome canal mensaje [archivo]`: configura bienvenida; variables de texto `{user}` y `{server}`. Acepta imágenes o videos MP4/MOV de hasta 10 segundos. Para video se usa `ffprobe` para validar la duración y `ffmpeg` para convertirlo a GIF en bucle. Instala ambas herramientas del sistema y monta almacenamiento persistente para `welcome-media/` si el despliegue usa disco efímero. Límite del archivo: 25 MB.
-- `/testwelcome`: publica la vista previa en el canal configurado.
-- `/anti-raid`: abre un panel privado con botones activar/restaurar y selector de umbral (3/5/7/10 entradas por 10 segundos). Al dispararse bloquea canales de texto y expulsa cuentas recién creadas hace menos de 7 días si el bot tiene permisos. El botón verde restaura los permisos previos que se pudieron guardar y desactiva el escudo.
-- `/verify canal rol`: publica un botón que asigna el rol seleccionado, siempre respetando la jerarquía de roles del bot.
+`/automod` abre un panel privado con botones para activar/desactivar filtros de mayúsculas excesivas, spam de menciones (`@everyone`, `@here` y menciones masivas), enlaces externos/invitaciones y palabras prohibidas. «Editar palabras» abre un modal: escribe palabras separadas por comas para añadirlas, antepón `-` para retirar una palabra o escribe `*` para vaciar la lista. La configuración persiste en `automod.json`; los mensajes que coincidan se borran si el bot tiene **Manage Messages**.
 
-Los comandos existentes con `.` permanecen separados. No se crean aliases híbridos para las cuatro funciones anteriores.
+## Utilidades: solo prefijo `.`
 
-## Requisitos y permisos
+- `.afk [motivo]`: activa tu estado AFK; se anuncia cuando te mencionan y se quita al volver a escribir.
+- `.banner [@usuario]`: muestra tu banner o el del usuario mencionado/respondido.
+- `.serverinfo`: miembros, canales, roles, propietario y fecha de creación.
+- `.ping`: latencia del mensaje y de la API de Discord.
 
-Node.js 20+, token `DISCORD_TOKEN`, activar **Message Content Intent** y **Server Members Intent** en Developer Portal para conservar los comandos de prefijo y la detección de miembros. Concede al bot solo los permisos necesarios, entre ellos gestionar canales/roles/miembros y leer el registro de auditoría para la respuesta anti-raid. El rol del bot debe superar al rol de verificación.
+El resto de comandos y prefijos existentes se mantienen en sus módulos. No se hacen alias híbridos para AutoMod ni estas utilidades.
 
-```bash
-npm install
-npm start
-```
+Inicia con `npm start` (Node.js 20+). El bot requiere `DISCORD_TOKEN`; Message Content Intent y Server Members Intent deben estar activados en Developer Portal para los comandos con `.` y la detección de AFK. Para AutoMod concede **Manage Messages** al bot; las opciones del panel requieren **Manage Server**.
