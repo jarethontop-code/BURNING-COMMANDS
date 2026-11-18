@@ -1,36 +1,42 @@
-const { PermissionFlagsBits: P, guildSettings, staffOnly, requireBot } = require('../lib');
+const { PermissionFlagsBits: P, guildSettings, save, staffOnly, requireBot } = require('../lib');
 const pendingNukes = new Map();
 const antispamState = new Map();
 const commands = [];
 function command(name, description, execute) { commands.push({ name, description, category: 'Seguridad', execute }); }
 command('antilink', 'Activa o desactiva la eliminación de enlaces.', async ({ message, args }) => {
   if (!await staffOnly(P.ManageGuild)({ message })) return;
-  const value = (args[0] || '').toLowerCase(); if (!['on', 'off'].includes(value)) return message.reply('Uso: `.antilink on|off`');
-  guildSettings(message.guild.id).antilink = value === 'on'; require('../lib').save?.();
-  // Persistencia del estado de seguridad.
-  require('./state-helper').persist();
+  const value = (args[0] || '').toLowerCase();
+  if (!['on', 'off'].includes(value)) return message.reply('Uso: `.antilink on|off`');
+  guildSettings(message.guild.id).antilink = value === 'on';
+  save();
   await message.reply(`🛡️ Antilink ${value === 'on' ? 'activado' : 'desactivado'}.`);
 });
 command('antispam', 'Activa o desactiva la detección de spam.', async ({ message, args }) => {
   if (!await staffOnly(P.ManageGuild)({ message })) return;
-  const value = (args[0] || '').toLowerCase(); if (!['on', 'off'].includes(value)) return message.reply('Uso: `.antispam on|off`');
-  guildSettings(message.guild.id).antispam = value === 'on'; require('./state-helper').persist();
+  const value = (args[0] || '').toLowerCase();
+  if (!['on', 'off'].includes(value)) return message.reply('Uso: `.antispam on|off`');
+  guildSettings(message.guild.id).antispam = value === 'on';
+  save();
   await message.reply(`🚦 Antispam ${value === 'on' ? 'activado (5 mensajes / 5 segundos; timeout automático de 5 minutos)' : 'desactivado'}.`);
 });
 command('lock', 'Bloquea el canal para @everyone.', async ({ message }) => {
   if (!await staffOnly(P.ManageChannels)({ message })) return;
-  requireBot(message, P.ManageChannels); await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: false });
+  requireBot(message, P.ManageChannels);
+  await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: false });
   await message.channel.send('🔒 Canal bloqueado para @everyone.');
 });
 command('unlock', 'Permite de nuevo escribir a @everyone.', async ({ message }) => {
   if (!await staffOnly(P.ManageChannels)({ message })) return;
-  requireBot(message, P.ManageChannels); await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: null });
+  requireBot(message, P.ManageChannels);
+  await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: null });
   await message.channel.send('🔓 Canal desbloqueado para @everyone.');
 });
 command('slowmode', 'Establece el modo lento (0-21600 segundos).', async ({ message, args }) => {
   if (!await staffOnly(P.ManageChannels)({ message })) return;
-  const seconds = Number(args[0]); if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21600) return message.reply('Uso: `.slowmode <0-21600>`');
-  requireBot(message, P.ManageChannels); await message.channel.setRateLimitPerUser(seconds);
+  const seconds = Number(args[0]);
+  if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21600) return message.reply('Uso: `.slowmode <0-21600>`');
+  requireBot(message, P.ManageChannels);
+  await message.channel.setRateLimitPerUser(seconds);
   await message.reply(`⏱️ Modo lento establecido en ${seconds} segundo(s).`);
 });
 command('nuke', 'Clona el canal y elimina el original tras confirmación.', async ({ message, args }) => {
@@ -60,8 +66,11 @@ async function onMessage(message) {
     return;
   }
   if (!settings.antispam) return;
-  const key = `${message.guild.id}:${message.author.id}`, now = Date.now();
-  const times = (antispamState.get(key) || []).filter(t => now - t < 5000); times.push(now); antispamState.set(key, times);
+  const key = `${message.guild.id}:${message.author.id}`;
+  const now = Date.now();
+  const times = (antispamState.get(key) || []).filter(t => now - t < 5000);
+  times.push(now);
+  antispamState.set(key, times);
   if (times.length >= 5 && !message.member?.permissions.has(P.ManageMessages)) {
     antispamState.delete(key);
     if (message.member?.moderatable && message.guild.members.me?.permissions.has(P.ModerateMembers)) {
