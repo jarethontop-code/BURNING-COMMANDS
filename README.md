@@ -1,36 +1,37 @@
 # BURNING-COMMANDS
 
-Bot de moderación y comunidad para Discord con JavaScript y discord.js v14. **Todos los comandos funcionan exclusivamente con el prefijo `.`**; no se registran comandos slash.
+Bot de Discord modular en JavaScript con discord.js v14. Los comandos de moderación, seguridad, soporte e interacción funcionan tanto con prefijo `.` como mediante Slash Commands `/`. Las respuestas de slash son efímeras por defecto; los GIF y las sugerencias se publican en el canal.
 
-## Instalar y arrancar
+## Instalación
 
-Requisitos: Node.js 20 o superior y una aplicación de bot en [Discord Developer Portal](https://discord.com/developers/applications).
+Requiere Node.js 20+. Crea la aplicación y el bot en [Discord Developer Portal](https://discord.com/developers/applications), habilita **Message Content Intent** y **Server Members Intent**, y concede los permisos necesarios (sin `Administrator` si no hace falta).
 
 ```bash
 npm install
 cp .env.example .env
-# Edita .env y configura DISCORD_TOKEN
+# establece DISCORD_TOKEN en .env
 npm start
 ```
 
-En Windows PowerShell, usa `Copy-Item .env.example .env`. Nunca subas `.env` ni compartas el token; si se expone, restablécelo en Developer Portal. Activa **Message Content Intent** y **Server Members Intent** en la configuración del bot. Otorga solo los permisos que vayas a utilizar; no es necesario dar `Administrator`.
+En Windows: `Copy-Item .env.example .env`. Invita al bot con `applications.commands` además de `bot`. Para gestionar el modo antibot, concede también **View Audit Log**. El token debe permanecer privado; si se expone, rótalo en Developer Portal.
 
-## Ajustes opcionales en `.env`
+## Variables de entorno
 
-- `REPORT_CHANNEL_ID`: ID del canal privado de reportes.
-- `TICKET_CATEGORY_ID`: ID de la categoría de tickets.
-- `STAFF_ROLE_IDS`: IDs de roles del staff separados por comas. Estos roles pueden ver tickets.
+- `DISCORD_TOKEN`: token secreto del bot (obligatorio).
+- `DEV_GUILD_ID`: opcional, registra los slash commands en un servidor de pruebas. Si se omite, se registran globalmente.
+- `REPORT_CHANNEL_ID`: canal privado para `.report` y `/report`.
+- `TICKET_LOG_CHANNEL_ID`: canal opcional para transcripciones de tickets; si no se define, la transcripción se adjunta antes de borrar el ticket.
+
+El rol de tickets se configura dentro del servidor con `.ticket-rol @rol` o `/ticket-rol`; la categoría con `.ticket-categoria nombre/ID` o `/ticket-categoria`. Si no se indica categoría, se crea/usa una categoría `tickets`.
 
 ## Comandos
 
-**Moderación:** `.purge <1-100>`, `.kick @usuario [razón]`, `.ban @usuario [razón]`, `.unban <ID>`, `.mute @usuario <tiempo> [razón]`, `.unmute @usuario`, `.warn @usuario <razón>`, `.warnings @usuario`, `.clearwarns @usuario`, `.nick @usuario <nombre>`.
+**Moderación (staff):** `.purge` `/purge`, `.purgeuser` `/purgeuser`, `.kick` `/kick`, `.ban` `/ban`, `.softban` `/softban`, `.unban` `/unban`, `.mute` `/mute`, `.unmute` `/unmute`, `.warn` `/warn`, `.warnings` `/warnings`, `.clearwarns` `/clearwarns`, `.nick` `/nick`.
 
-**Seguridad:** `.antilink on|off`, `.antispam on|off`, `.lock`, `.unlock`, `.slowmode <0-21600>`, `.nuke` (requiere `.nuke confirm` en 15 segundos; la eliminación del historial es irreversible).
+**Seguridad (staff):** `.antilink on|off` `/antilink`, `.antispam on|off` `/antispam`, `.antibot on|off` `/antibot`, `.lock` `/lock`, `.unlock` `/unlock`, `.lockall` `/lockall`, `.unlockall` `/unlockall`, `.slowmode` `/slowmode`, `.nuke confirm` `/nuke confirmar:true` (acción irreversible con confirmación).
 
-**Soporte/utilidad:** `.help` / `.ayuda`, `.ticket`, `.close` (confirma con `.close confirm` o cancela con `.close cancel`), `.report @usuario <motivo>`, `.userinfo [@usuario]`, `.serverinfo`, `.avatar [@usuario]`, `.ping`.
+**Soporte/administración:** `.help` `/help`, `.ticket-panel` `/ticket-panel`, `.ticket-rol` `/ticket-rol`, `.ticket-categoria` `/ticket-categoria`, `.ticket` `/ticket` o botón del panel, `.adduser` `/adduser`, `.removeuser` `/removeuser`, `.close` `/close`, `.report` `/report`, `.suggest` `/suggest`, `.userinfo` `/userinfo`, `.serverinfo` `/serverinfo`, `.ping` `/ping`.
 
-**Juegos/economía:** `.8ball <pregunta>`, `.coinflip`, `.rps <piedra|papel|tijera>`, `.roll [caras]`, `.trivia` (15 segundos), `.ship @usuario1 @usuario2`, `.work`, `.bal [@usuario]`.
+**Interacción con GIF:** `.kiss` `/kiss`, `.hug` `/hug`, `.slap` `/slap`, `.pat` `/pat`, `.poke` `/poke`, `.cuddle` `/cuddle`, `.bite` `/bite`, `.highfive` `/highfive`, `.punch` `/punch`, `.cry` `/cry`, `.dance` `/dance`, `.blush` `/blush`, `.sleep` `/sleep`, `.happy` `/happy`.
 
-**Interacción:** `.kiss @usuario`, `.hug @usuario`, `.slap @usuario`, `.pat @usuario`, `.poke @usuario`, `.cuddle @usuario`, `.kill @usuario`, `.cry`, `.dance`. Los GIFs se consultan en Nekos.best; si la API falla, los comandos responden con texto.
-
-Los avisos, ajustes de seguridad y monedas se guardan localmente en `data.json` (no se sube al repositorio). Los comandos de staff verifican permisos; Discord además aplica jerarquía de roles y permisos del bot. Para `mute`, usa duraciones como `30s`, `10m`, `2h`, `1d` o `1h30m` (máximo 28 días).
+Los avisos, configuración y tickets se guardan en `data.json` (ignorado por Git). Los GIF se consultan en Nekos.best. Discord aplica jerarquía de roles además de los permisos comprobados por el bot.
