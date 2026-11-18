@@ -19,10 +19,10 @@ const {
 const DATA_FILE = path.resolve(process.env.AUTOMOD_DATA_PATH || 'automod.json');
 const LINK_PATTERN = /(?:https?:\/\/|www\.|discord\.gg\/|discord(?:app)?\.com\/invite\/)[^\s]*/gi;
 const FILTERS = {
-  caps: { label: 'Mayúsculas excesivas', description: 'Elimina mensajes con texto casi totalmente en mayúsculas.' },
-  mentions: { label: 'Spam de menciones', description: 'Bloquea @everyone y mensajes con muchas menciones.' },
-  links: { label: 'Enlaces externos', description: 'Elimina mensajes que contengan URLs o invitaciones.' },
-  words: { label: 'Palabras prohibidas', description: 'Elimina mensajes que incluyan términos configurados.' }
+  caps: { label: 'Mayúsculas excesivas' },
+  mentions: { label: 'Spam de menciones' },
+  links: { label: 'Enlaces externos' },
+  words: { label: 'Palabras prohibidas' }
 };
 let store = { guilds: {} };
 try {
@@ -37,8 +37,8 @@ function save() {
 }
 function settings(guildId) {
   const current = store.guilds[guildId] ||= {};
-  current.filters ||= { caps: false, mentions: false, links: false, words: false };
-  current.bannedWords ||= [];
+  current.filters = { caps: false, mentions: false, links: false, words: false, ...(current.filters || {}) };
+  if (!Array.isArray(current.bannedWords)) current.bannedWords = [];
   return current;
 }
 function makeEmbed(guildId) {
@@ -53,22 +53,19 @@ function makeEmbed(guildId) {
 }
 function panelComponents(guildId) {
   const config = settings(guildId);
-  const row = new ActionRowBuilder();
-  for (const [key, filter] of Object.entries(FILTERS)) {
-    row.addComponents(new ButtonBuilder()
-      .setCustomId(`automod:toggle:${guildId}:${key}`)
-      .setLabel(filter.label)
-      .setStyle(config.filters[key] ? ButtonStyle.Success : ButtonStyle.Secondary));
-  }
-  row.addComponents(new ButtonBuilder().setCustomId(`automod:words:${guildId}`).setLabel('Editar palabras').setEmoji('📝').setStyle(ButtonStyle.Primary));
-  return [row];
+  const buttons = Object.entries(FILTERS).map(([key, filter]) => new ButtonBuilder()
+    .setCustomId(`automod:toggle:${guildId}:${key}`)
+    .setLabel(filter.label)
+    .setStyle(config.filters[key] ? ButtonStyle.Success : ButtonStyle.Secondary));
+  buttons.push(new ButtonBuilder().setCustomId(`automod:words:${guildId}`).setLabel('Editar palabras').setEmoji('📝').setStyle(ButtonStyle.Primary));
+  // Discord limits action rows to five components.
+  return [new ActionRowBuilder().addComponents(...buttons)];
 }
 const command = {
   name: 'automod',
   description: 'Abre el panel para configurar filtros automáticos.',
   default_member_permissions: P.ManageGuild.toString()
 };
-
 async function register(client) {
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   const route = process.env.DEV_GUILD_ID
@@ -78,34 +75,38 @@ async function register(client) {
   const merged = new Map(current.map(item => [item.name, item]));
   merged.set(command.name, command);
   await rest.put(route, { body: [...merged.values()] });
-  console.log('Comando slash /automod registrado.');
 }
-function hasManageGuild(interaction) {
-  return interaction.memberPermissions?.has(P.ManageGuild) || interaction.member?.permissions?.has(P.ManageGuild);
+function canManage(interaction) {
+  return Boolean(interaction.memberPermissions?.has(P.ManageGuild) || interaction.member?.permissions?.has(P.ManageGuild));
 }
-async function replyDenied(interaction) {
-  await interaction.reply({ content: 'Necesitas el permiso Gestionar servidor para modificar AutoMod.', ephemeral: true }).catch(() => {});
+async function answer(interaction, payload) {
+  if (interaction.deferred || interaction.replied) return interaction.followUp({ ...payload, ephemeral: true });
+  return interaction.reply({ ...payload, ephemeral: true });
 }
 async function handleInteraction(interaction) {
-  if (interaction.isChatInputCommand() && interaction.commandName === 'automod') {
-    if (!hasManageGuild(interaction)) return replyDenied(interaction);
+  if (interaction.isChatInputCommand?.() && interaction.commandName === 'automod') {
+    if (!canManage(interaction)) {
+      await answer(interaction, { content: 'Necesitas el permiso Gestionar servidor para modificar AutoMod.' });
+      return true;
+    }
     await interaction.reply({ embeds: [makeEmbed(interaction.guildId)], components: panelComponents(interaction.guildId), ephemeral: true });
     return true;
   }
 
   const customId = interaction.customId || '';
-  if (!(interaction.isButton() || interaction.isModalSubmit()) || !customId.startsWith('automod:')) return false;
+  if (!(interaction.isButton?.() || interaction.isModalSubmit?.()) || !customId.startsWith('automod:')) return false;
   const parts = customId.split(':');
   const guildId = parts[2];
-  if (interaction.guildId !== guildId || !hasManageGuild(interaction)) {
-    await replyDenied(interaction);
+  const actualGuildId = interaction.guildId || interaction.guild?.id;
+  if (!guildId || actualGuildId !== guildId || !canManage(interaction)) {
+    await answer(interaction, { content: 'Solo administradores de este servidor pueden cambiar AutoMod.' });
     return true;
   }
 
   if (interaction.isButton() && parts[1] === 'toggle') {
     const filterKey = parts[3];
     if (!Object.hasOwn(FILTERS, filterKey)) {
-      await interaction.reply({ content: 'Ese filtro no existe.', ephemeral: true });
+      await answer(interaction, { content: 'Ese filtro no existe.' });
       return true;
     }
     const config = settings(guildId);
@@ -129,28 +130,22 @@ async function handleInteraction(interaction) {
     const config = settings(guildId);
     const submitted = interaction.fields.getTextInputValue('terms').split(',').map(word => word.trim().toLocaleLowerCase()).filter(Boolean);
     for (const item of submitted) {
-      if (item === '*') {
-        config.bannedWords = [];
-        continue;
-      }
+      if (item === '*') { config.bannedWords = []; continue; }
       if (item.startsWith('-')) {
         const remove = item.slice(1).trim();
         config.bannedWords = config.bannedWords.filter(word => word !== remove);
         continue;
       }
-      if (item.length < 2 || item.length > 80) continue;
-      if (!config.bannedWords.includes(item)) config.bannedWords.push(item);
+      if (item.length >= 2 && item.length <= 80 && !config.bannedWords.includes(item)) config.bannedWords.push(item);
     }
     config.bannedWords = config.bannedWords.slice(0, 100);
     save();
-    const payload = { embeds: [makeEmbed(guildId)], components: panelComponents(guildId), ephemeral: true };
-    if (interaction.message) await interaction.update(payload).catch(async () => interaction.reply(payload));
-    else await interaction.reply({ content: 'Lista de palabras actualizada. Ejecuta `/automod` para ver el panel.', ephemeral: true });
+    // Modal submits are new interactions. Reply instead of updating the old component interaction.
+    await answer(interaction, { embeds: [makeEmbed(guildId)] });
     return true;
   }
   return false;
 }
-
 function allCaps(content) {
   const letters = content.match(/[a-záéíóúüñ]/gi) || [];
   const uppercase = content.match(/[A-ZÁÉÍÓÚÜÑ]/g) || [];
@@ -195,9 +190,7 @@ function install() {
         try { if (await handleInteraction(interaction)) return; }
         catch (error) {
           console.error('Error en /automod:', error);
-          const response = { embeds: [new EmbedBuilder().setColor(0xE74C3C).setDescription('No se pudo procesar AutoMod. Inténtalo de nuevo.')], ephemeral: true };
-          if (interaction.deferred || interaction.replied) await interaction.followUp(response).catch(() => {});
-          else await interaction.reply(response).catch(() => {});
+          await answer(interaction, { embeds: [new EmbedBuilder().setColor(0xE74C3C).setDescription(`AutoMod: ${error.message || 'error inesperado'}`)] }).catch(() => {});
           return;
         }
         return listener.call(this, interaction);
@@ -219,5 +212,4 @@ function install() {
     });
   };
 }
-
 module.exports = { install, command };
