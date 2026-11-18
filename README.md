@@ -1,11 +1,25 @@
 # BURNING-COMMANDS
 
-Bot de Discord con módulo de reacciones sociales para discord.js v14. Los comandos sociales se pueden usar con el prefijo `.`: `.kiss @usuario`, `.hug @usuario`, `.slap @usuario`, `.pat @usuario`, `.bite @usuario`, `.poke @usuario`, `.cuddle @usuario`, `.highfive @usuario`, `.punch @usuario`, `.tickle @usuario`, y `.cry`, `.dance`, `.blush`, `.sleep`, `.happy` sin mención.
+Bot de Discord con comandos híbridos y reacciones sociales. Arranca mediante `npm start` (Node.js 20+).
 
-## Activar comandos con `.`
+## Comandos con prefijo `.`
 
-El proceso arranca con `npm start` (usa `src/start.js`, que instala primero el manejador social). En Discord Developer Portal, abre **Bot → Privileged Gateway Intents** y activa **Message Content Intent**, **Server Members Intent** y **Server Members Moderation Intent**; el entrypoint solicita esos intents para el bot. También configura `DISCORD_TOKEN` en el entorno de despliegue. Si Discord muestra `Used disallowed intents`, falta activar uno o más intents en Developer Portal. Reinicia el servicio después de cambiarlo.
+- `.purge 13` — elimina hasta 100 mensajes recientes.
+- `.lock` / `.unlock` — bloquea o desbloquea el canal actual.
+- `.timeout @usuario 13m` o responde al mensaje de un usuario con `.timeout 13m`; `.mute` es alias.
+- `.ban @usuario [razón]` y `.kick @usuario [razón]`; también puedes responder al mensaje del usuario y escribir `.ban [razón]` o `.kick [razón]`.
+- `.serverinfo` — estadísticas del servidor.
+- `.userinfo [@usuario]` — consulta tu perfil, menciona a un miembro o responde a su mensaje.
+- `.nuke true` — recrea inmediatamente el canal. Esta acción borra el historial del canal original y es irreversible; solo ejecuta el comando si realmente deseas borrarlo.
+- `.help` — lista de comandos principales.
 
-Las reacciones con usuario muestran embed y GIF de Nekos.best, y botones que solo puede pulsar la persona mencionada. Al responder, se desactivan los botones originales y se publica el embed de respuesta. Caducan a los 120 segundos. No se permite mencionar al autor, al propio bot ni a otro bot.
+Las reacciones `.kiss`, `.hug`, `.slap`, `.pat`, `.bite`, `.poke`, `.cuddle`, `.highfive`, `.punch`, `.tickle`, `.cry`, `.dance`, `.blush`, `.sleep` y `.happy` están incluidas en `src/social-interactions.js`.
 
-Instalación: `npm install`; ejecución: `npm start`. Si falla la API de GIF, la reacción se envía sin imagen.
+## Configuración de Discord
+
+Define `DISCORD_TOKEN` en el entorno de ejecución. Activa **Message Content Intent** y **Server Members Intent** en Developer Portal; son necesarios para comandos de prefijo y consultar miembros. Dale al bot permisos mínimos: gestionar mensajes, canales, miembros, moderar miembros y ver mensajes. El bot debe tener un rol superior al de los usuarios que modera.
+
+```bash
+npm install
+npm start
+```

@@ -1,7 +1,8 @@
-// Install the social prefix handler before the application registers its listeners.
+// Install prefix handlers before the existing bot registers its message listeners.
 require('./social-interactions').install();
+require('./prefix-commands').install();
 
-// The existing entry point gates prefix-command intents behind this flag.
-// Discord still requires these privileged intents to be enabled in the Developer Portal.
+// The current entry point requests privileged intents for prefix commands.
+// Enable Message Content Intent and Server Members Intent in Discord Developer Portal.
 process.env.ENABLE_PRIVILEGED_INTENTS = 'true';
 require('./index');
